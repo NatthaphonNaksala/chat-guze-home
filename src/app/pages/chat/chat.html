@@ -1,0 +1,407 @@
+<div class="flex h-full w-full bg-slate-900 text-slate-100 font-sans overflow-hidden relative">
+
+  <!-- 🟢 1. ครอบด้วย fixed inset-0 z-50 เพื่อไม่ให้ไปดัน Sidebar และให้หายไปอย่างนุ่มนวล -->
+  <div 
+    class="absolute inset-0 z-50 pointer-events-none transition-opacity duration-700 ease-in-out bg-black overflow-hidden"
+    [class.opacity-100]="isSplashActive()"
+    [class.opacity-0]="!isSplashActive()"
+    [class.hidden]="isSplashHidden()"
+  >
+    <om-galaxy class="w-full h-full block"></om-galaxy>
+
+    <div class="absolute inset-0 bg-linear-to-br from-sky-400 via-blue-600 to-sky-200 mix-blend-color pointer-events-none"></div>
+    <div class="absolute inset-0 bg-slate-900 mix-blend-screen pointer-events-none"></div>
+
+    <div class="absolute inset-0 flex flex-col justify-center items-center pointer-events-none z-10">
+      <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-linear-to-b from-blue-200 to-sky-600 drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]">
+        GuzeAI
+      </h1>
+    </div>
+  </div>
+
+  <!-- Left Sidebar: Chat Sessions (Toggleable) -->
+  @if (isSidebarOpen()) {
+    <aside class="w-72 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 h-full transition-all duration-300">
+      <div class="overflow-y-auto p-3 space-y-3">
+        <!-- Header / Title -->
+        <div class="p-1 pb-3 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <h2 class="font-bold text-sm text-primary tracking-wide">{{ title() }}</h2>
+          </div>
+          <!-- Close Sidebar Button -->
+          <button (click)="toggleSidebar()" class="text-slate-400 cursor-pointer hover:text-white p-3 py-1.5 rounded-full hover:bg-primary transition-all">
+            ✕
+          </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <button 
+          (click)="createNewChat()"
+          class="w-full p-2.5 font-medium rounded-xl text-xs cursor-pointer transition-all flex items-center justify-center gap-2 border"
+          [class]="messages().length === 0 
+            ? 'bg-primary/20 text-primary border-primary shadow-sm' 
+            : 'bg-slate-100 hover:bg-primary/10 hover:text-primary text-slate-700 border-slate-200'"
+        >
+          <span class="text-base leading-none">+</span> แชทใหม่ (New Chat)
+        </button>
+
+        <!-- 🟢 Chat Sessions List (ปรับปรุงส่วนปุ่ม 3 จุด + Dropdown Menu) -->
+        <div class="space-y-1 pt-2">
+          <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">ประวัติการแชท</p>
+          
+          @for (session of chatSessions(); track session._id; let i = $index; let count = $count) {
+            <div 
+              class="group relative flex items-center justify-between rounded-xl transition-all cursor-pointer border"
+              [class]="session._id === currentSessionId()
+                ? 'bg-primary/10 text-primary font-medium border-primary/20' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'"
+              (click)="selectSession(session._id)"
+            >
+              <!-- Chat Title Link -->
+              <div class="flex items-center gap-2 truncate p-2.5 pr-1 min-w-0 flex-1">
+                <svg class="w-3.5 h-3.5 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                </svg>
+                <span class="truncate text-xs">{{ session.title }}</span>
+              </div>
+
+              <!-- 3-Dots Button -->
+              <div class="relative shrink-0 pr-1.5">
+                <button 
+                  (click)="toggleMenu(session._id, $event)"
+                  class="p-2 rounded-lg cursor-pointer text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  [class.opacity-100]="activeMenuId() === session._id"
+                  title="ตัวเลือกเพิ่มเติม"
+                >
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                  </svg>
+                </button>
+
+                <!-- Dropdown Popup Menu (แก้ Position อัตโนมัติ: ถ้าอยู่แถบท้ายๆ ให้เปิดขึ้นข้างบน) -->
+                @if (activeMenuId() === session._id) {
+                  <div 
+                    class="absolute right-0 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+                    [class]="(i >= count - 2 && count > 3) ? 'bottom-8' : 'top-7'"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <!-- Rename Option -->
+                    <button 
+                      (click)="openRenameModal(session, $event)"
+                      class="w-full text-left cursor-pointer px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                      <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                      เปลี่ยนชื่อ
+                    </button>
+
+                    <!-- Delete Option -->
+                    <button 
+                      (click)="openDeleteModal(session, $event)"
+                      class="w-full text-left cursor-pointer px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
+                    >
+                      <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                      ลบประวัติ
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="text-xs text-slate-400 text-center py-4">ยังไม่มีประวัติการแชท</div>
+          }
+        </div>
+      </div>
+    </aside>
+  }
+
+  <!-- Main Chat Container -->
+  <main class="flex-1 flex flex-col h-full min-w-0 bg-white relative overflow-hidden">
+
+    @if (messages().length === 0) {
+      <div class="absolute top-0 right-0 h-full w-screen z-0 bg-white pointer-events-none overflow-hidden transition-opacity duration-500 flex items-center justify-center">
+        <om-dark-veil 
+          class="w-full h-full block mix-blend-difference min-w-full min-h-full [&>canvas]:w-full! [&>canvas]:h-full! [&>canvas]:object-cover! filter-[hue-rotate(145deg)_saturate(0.8)_brightness(4)] opacity-70 scale-150 translate-y-42"
+        ></om-dark-veil>
+      </div>
+    }
+
+    <!-- Top Header -->
+    <header class="h-14 px-4 md:px-6 flex items-center justify-between shrink-0 z-20">
+      <div class="flex items-center gap-3">
+        @if (!isSidebarOpen()) {
+          <button 
+            (click)="toggleSidebar()" 
+            class="p-2 cursor-pointer bg-slate-50 hover:bg-primary text-primary hover:text-white transition-all rounded-lg text-xs font-medium flex items-center gap-1.5"
+            title="เปิดประวัติแชท"
+          >
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16"></path>
+            </svg>
+          </button>
+        }
+      </div>
+    </header>
+
+    <!-- Layout Container --> 
+    <div class="flex-1 flex flex-col relative overflow-hidden">
+      
+      <!-- Message Thread Area -->
+      <div 
+        #chatContainer
+        class="w-full h-full overflow-y-auto p-4 md:p-6 space-y-4 transition-opacity duration-300 scroll-smooth"
+        [class]="messages().length === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto pb-36 md:pb-40 scroll-pb-26'"
+      >
+        @for (msg of messages(); track $index) {
+          <div class="flex flex-col" [class]="msg.sender === 'user' ? 'items-end' : 'items-start'">
+            <div class="flex items-end gap-2 max-w-[85%] md:max-w-[75%]" [class.flex-row-reverse]="msg.sender === 'user'">
+              
+              <!-- Sender Avatar -->
+              @if (msg.sender === 'bot') {
+                <div class="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  <img 
+                    src="images/bot.svg" 
+                    alt="Bot Avatar" 
+                    class="w-full h-full object-cover p-1" 
+                  />
+                </div>
+              }
+              <!-- 🟢 Content Wrapper: จัดกลุ่มรูปภาพ (บน) และ ข้อความ (ล่าง) -->
+              <div class="flex flex-col gap-2 max-w-full" [class]="msg.sender === 'user' ? 'items-end' : 'items-start'">
+
+              <!-- 🟢 แสดงรูปภาพ (รองรับทั้ง User แนบมา และ Bot ดึงมาจาก FAQ) -->
+              @if (msg.imageUrls && msg.imageUrls.length > 0) {
+                <div class="flex flex-wrap gap-2 max-w-full" [class]="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
+                  @for (imgUrl of msg.imageUrls; track $index) {
+                    <div 
+                      class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm shrink-0 bg-slate-100 max-w-full"
+                      [class]="msg.sender === 'user' ? 'w-24 h-24 md:w-32 md:h-32' : 'max-w-[280px] md:max-w-[360px] max-h-[250px]'"
+                    >
+                      <img 
+                        [src]="imgUrl" 
+                        alt="Chat Image" 
+                        class="w-full h-full cursor-pointer hover:opacity-95 transition-opacity"
+                        [class]="msg.sender === 'user' ? 'object-cover' : 'object-contain bg-slate-900/5'"
+                        (click)="openImage(imgUrl)"
+                      />
+                    </div>
+                  }
+                </div>
+              }
+
+                <!-- Text Bubble -->
+                @if (msg.text) {
+                  <div class="p-3.5 rounded-2xl text-sm shadow-sm leading-relaxed whitespace-pre-line wrap-break-word max-w-full"
+                      [class]="msg.sender === 'user' 
+                        ? 'bg-primary text-white rounded-br-none' 
+                        : 'bg-slate-50 font-normal text-slate-800 rounded-bl-none'">
+                    {{ msg.text }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Timestamp -->
+            <span class="text-[10px] text-slate-400 mt-1 px-9">
+              {{ msg.timestamp | date:'HH:mm' }}
+            </span>
+          </div>
+        }
+
+        <!-- AI Typing / Loading State Indicator -->
+        @if (isLoading()) {
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <div class="w-12 h-12 md:w-12 md:h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+              <img 
+                src="images/bot.svg" 
+                alt="Bot Avatar" 
+                class="w-full h-full object-cover p-1" 
+              />
+            </div>
+            <div class="bg-slate-50 px-4 py-2.5 rounded-2xl rounded-bl-none border border-slate-200 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>
+              <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></span>
+              <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            </div>
+          </div>
+        }
+      </div>
+
+      
+      <!-- Interactive Area -->
+      <div 
+        class="absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ease-in-out flex flex-col items-center justify-end z-10 pointer-events-none"
+        [class]="messages().length === 0 
+          ? '-translate-y-[calc(50vh-100px)]' 
+          : 'translate-y-0 bg-white/80 backdrop-blur-sm'"
+      >
+
+      <h5
+        class="w-full flex justify-center items-center text-2xl md:text-3xl font-semibold text-primary tracking-tight px-4 mb-8 transition-opacity duration-300 **:text-2xl! md:**:text-3xl!"
+        [class]="messages().length === 0 ? 'opacity-100' : 'opacity-0 h-0 mb-0! overflow-hidden'"
+      >
+        <om-word-morph 
+          [words]="['พร้อมก็บอกได้เลยนะ', 'มีอะไรให้ GuzeAI ช่วยไหม?', 'ถามคำถามได้เลยครับ']"
+          [morphDuration]="3000"
+          [morphDelay]="5000">
+        </om-word-morph>
+      </h5>
+        <!-- chat input -->
+        <form (submit)="$event.preventDefault(); sendMessage()" class="relative flex flex-col gap-2 w-full max-w-2xl mx-auto pointer-events-auto">
+          
+          <!-- 🟢 แสดงรายการรูปภาพ Preview ทั้งหมด (Horizontal Scroll) -->
+          @if (selectedImagePreviews().length > 0) {
+            <div class="flex items-center gap-2 self-start ml-4 mb-1 overflow-x-auto max-w-full pb-1">
+              @for (preview of selectedImagePreviews(); track $index) {
+                <div class="relative shrink-0">
+                  <img [src]="preview" class="h-16 w-16 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                  <button 
+                    type="button" 
+                    (click)="removeSelectedImage($index)" 
+                    class="absolute -top-1.5 -right-1.5 bg-slate-800/80 hover:bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow transition-colors">
+                    ✕
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="relative flex items-center w-full">
+            <textarea
+              [value]="inputText()"
+              (input)="inputText.set($any($event.target).value)"
+              (keydown)="onKeyDown($event)"
+              (paste)="onPaste($event)"
+              placeholder="ถามกับ GuzeAI ได้เลย..."
+              rows="1"
+              class="w-full font-normal bg-slate-50 text-black/80 placeholder-black/30 text-sm rounded-full px-5 py-3 pr-24 border border-primary/60 focus:outline-none focus:border-primary transition-all shadow-inner resize-none max-h-32 overflow-y-auto"
+            ></textarea>
+
+            <!-- 🟢 ใส่ multiple เพื่อให้กดเลือกจากคลังหลายรูปพร้อมกันได้ด้วย -->
+            <input 
+              type="file" 
+              #fileInput 
+              (change)="onFileSelected($event)" 
+              accept="image/*" 
+              multiple
+              class="hidden" 
+            />
+
+            <!-- ปุ่มส่งข้อความ -->
+            <div class="absolute right-3 flex items-center gap-1">
+              <button
+                type="button"
+                (click)="fileInput.click()"
+                class="p-2 cursor-pointer text-slate-400 hover:text-primary rounded-full transition-colors"
+                title="แนบรูปภาพ"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+
+              <!-- 🟢 เช็ก condition ปรับปุ่มกดส่งเมื่อมีรูปใน selectedFiles() -->
+              <button
+                type="submit"
+                [disabled]="(!inputText().trim() && selectedFiles().length === 0) || isLoading()"
+                class="p-3 bg-primary hover:bg-primary/80 cursor-pointer disabled:bg-white disabled:text-slate-400 text-white rounded-full transition-all flex items-center justify-center  disabled:cursor-not-allowed"
+                title="ส่งข้อความ"
+              >
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20 4v7a4 4 0 01-4 4H4m0 0l5-5m-5 5l5 5"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- 🟢 Rename Modal Dialog -->
+  @if (isRenameModalOpen()) {
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
+        <h3 class="font-bold text-slate-800 text-base">เปลี่ยนชื่อหัวข้อแชท</h3>
+        
+        <input 
+          type="text" 
+          [value]="editingTitle()" 
+          (input)="editingTitle.set($any($event.target).value)"
+          placeholder="กรอกชื่อหัวข้อใหม่..."
+          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary text-slate-800"
+          (keydown.enter)="saveRenameSession()"
+        />
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button 
+            (click)="closeRenameModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+          >
+            ยกเลิก
+          </button>
+          <button 
+            (click)="saveRenameSession()" 
+            [disabled]="!editingTitle().trim()"
+            class="px-4 py-2 rounded-xl text-xs font-medium bg-primary hover:bg-primary/90 text-white transition-all cursor-pointer disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            บันทึก
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- 🟢 Delete Confirmation Modal Dialog -->
+  @if (isDeleteModalOpen()) {
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
+        <div class="flex items-center gap-3 text-red-500">
+          <div class="p-2 bg-red-50 rounded-xl">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">ยืนยันการลบแชท</h3>
+            <p class="text-xs text-slate-500">ประวัติการคุยทั้งหมดในห้องนี้จะถูกลบถาวร</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button 
+            (click)="closeDeleteModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+          >
+            ยกเลิก
+          </button>
+          <button 
+            (click)="confirmDeleteSession()" 
+            class="px-4 py-2 rounded-xl text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition-all cursor-pointer shadow-sm"
+          >
+            ลบแชท
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (toastMessage()) {
+    <div class="fixed top-5 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out animate-slide-down">
+      <div class="flex items-center gap-2 bg-primary/90 text-white text-xs md:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md">
+        <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span>{{ toastMessage() }}</span>
+      </div>
+    </div>
+  }
+
+</div>

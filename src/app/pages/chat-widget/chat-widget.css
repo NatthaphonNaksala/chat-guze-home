@@ -1,0 +1,16 @@
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px; /* ความกว้างของ Scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* สีพื้นหลังแถบ Track (โปร่งใส) */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #dde6f0; /* สีของแถบ Scrollbar (slate-300) */
+  border-radius: 9999px; /* ปรับให้ขอบมน */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #bac6d6; /* สีขณะนำเมาส์ไปชี้ (slate-400) */
+}

@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+    --font-montserrat: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+
+     --color-primary-900: #02012A;
+     --color-primary-800: #030147;
+     --color-primary-800: #04026A;
+     --color-primary-600: #001489;
+     --color-primary-500: #2D37CD;
+     --color-primary-400: #524EF6;
+     --color-primary-300: #7778FF;
+     --color-primary-200: #9091FF;
+     --color-primary-100: #B0B1FF;
+     --color-primary-50: #D2D2FF;
+     --color-primary-0: #E6E6F4;
+
+     --color-primary: #05028D;
+     --color-secondary: #AADB1E;
+     --color-badge: #020047;
+
+    --color-secondary-900: #44580C;
+    --color-secondary-800: #556E10;
+    --color-secondary-700: #668313;
+    --color-secondary-600: #88AF19;
+    --color-secondary-500: #B2D237;
+    --color-secondary-400: #D0F440;
+    --color-secondary-300: #DDFA67;
+    --color-secondary-200: #E6FF83;
+    --color-secondary-100: #EEFEAD;
+    --color-secondary-50: #F6FFD2;
+
+    --color-subText: #F2F1EC;
+    --color-lightGrey: #DFDFDF;
+    --color-lightGrey2: #9EA2AE;
+    --color-input: #F3F4F6;
+
+    --background-image-outlineGrey: #DFDFDF;
+    --background-image-gradientBlueLight: radial-gradient(circle at top center, #05028D 0%, #020047 100%);
+    --background-image-gradientBlueLight-rotate: radial-gradient(circle at top center,  #020047 0%, #05028D 100%);
+    --background-image-gradientGreen: linear-gradient(356.65deg, #92C403 -0.46%, #AADB1E 95.52%);
+
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  background-color: #f3f4f6;
+}
