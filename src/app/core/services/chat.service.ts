@@ -32,7 +32,7 @@ export interface ChatSessionData {
 })
 export class ChatService {
   private http = inject(HttpClient);
-  private baseUrl = 'http://localhost:3000/api/chat';
+  private baseUrl = 'https://chat-guze-backend.onrender.com/api/chat';
 
   createSession(): Observable<ChatSessionData> {
     return this.http.post<ChatSessionData>(`${this.baseUrl}/session`, {});
